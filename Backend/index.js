@@ -14,7 +14,7 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 // Routes
-app.use("/", (req, res) => {
+app.get("/", (req, res) => {
     try {
         return res.status(200).json({ message: "Api is Working Successfully!" })
     } catch (error) {
