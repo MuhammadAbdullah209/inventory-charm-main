@@ -1,11 +1,12 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { AppShell, PageHeader } from "@/components/AppShell";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { api } from "@/lib/api";
 import { ScanLine } from "lucide-react";
+import JsBarcode from "jsbarcode";
 
 export const Route = createFileRoute("/scan")({
   head: () => ({ meta: [{ title: "Scan — Inventory" }] }),
@@ -16,8 +17,27 @@ interface SearchResult {
   type: "Product" | "Variant";
   product?: string;
   productName?: string;
+  price?: number;
   variant?: { size: string; color: string; stock: number; barcode: string };
   variants?: { size: string; color: string; stock: number; barcode: string }[];
+}
+
+function InlineBarcode({ value }: { value: string }) {
+  const ref = useRef<SVGSVGElement>(null);
+  useEffect(() => {
+    if (ref.current && value) {
+      try {
+        JsBarcode(ref.current, value, {
+          format: "CODE128",
+          width: 1.5,
+          height: 50,
+          displayValue: false,
+          margin: 4,
+        });
+      } catch { /* invalid value */ }
+    }
+  }, [value]);
+  return <svg ref={ref} className="w-full" />;
 }
 
 function ScanPage() {
@@ -42,30 +62,45 @@ function ScanPage() {
         </div>
         <Button type="submit">Search</Button>
       </form>
+
       {err && <p className="text-sm text-destructive mt-4">{err}</p>}
+
       {res && (
         <Card className="mt-6 max-w-2xl">
           <CardContent className="p-5">
             <div className="text-xs uppercase tracking-wider text-muted-foreground">{res.type}</div>
-            <h3 className="text-xl font-semibold mt-1">{res.product ?? res.productName}</h3>
+            <div className="flex items-center justify-between mt-1">
+              <h3 className="text-xl font-semibold">{res.product ?? res.productName}</h3>
+              {res.price !== undefined && (
+                <div className="text-xl font-semibold text-primary">₹{res.price}</div>
+              )}
+            </div>
+
+            {/* Single variant result (scanned by barcode) */}
             {res.variant && (
               <div className="mt-4 rounded-md border border-border p-3 text-sm">
-                <div className="flex justify-between">
-                  <span>{res.variant.size} · {res.variant.color}</span>
-                  <span className={res.variant.stock <= 5 ? "text-destructive font-medium" : "font-medium"}>{res.variant.stock} in stock</span>
+                <div className="flex justify-between mb-2">
+                  <span className="font-medium">{res.variant.size} · {res.variant.color}</span>
+                  <span className={res.variant.stock <= 5 ? "text-destructive font-medium" : "font-medium"}>
+                    {res.variant.stock} in stock
+                  </span>
                 </div>
-                <div className="font-mono text-xs text-muted-foreground mt-1">{res.variant.barcode}</div>
+                <InlineBarcode value={res.variant.barcode} />
+                <div className="font-mono text-xs text-muted-foreground mt-2 text-center">{res.variant.barcode}</div>
               </div>
             )}
+
+            {/* All variants result (scanned by product code) */}
             {res.variants && (
               <div className="mt-4 grid sm:grid-cols-2 gap-2">
                 {res.variants.map((v) => (
                   <div key={v.barcode} className="rounded-md border border-border p-3 text-sm">
-                    <div className="flex justify-between">
-                      <span>{v.size} · {v.color}</span>
+                    <div className="flex justify-between mb-2">
+                      <span className="font-medium">{v.size} · {v.color}</span>
                       <span className={v.stock <= 5 ? "text-destructive" : "text-muted-foreground"}>{v.stock}</span>
                     </div>
-                    <div className="font-mono text-xs text-muted-foreground mt-1">{v.barcode}</div>
+                    <InlineBarcode value={v.barcode} />
+                    <div className="font-mono text-xs text-muted-foreground mt-2 text-center">{v.barcode}</div>
                   </div>
                 ))}
               </div>

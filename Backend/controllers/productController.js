@@ -80,7 +80,7 @@ export const createProduct = async (req, res) => {
 export const getProducts = async (req, res) => {
     try {
         const products = await Product.find();
-        return res.status(200).json({ message: "Products fetched successfully", products });
+        return res.status(200).json(products);
     } catch (error) {
         res.status(500).json({ message: error.message });
     }
@@ -107,6 +107,7 @@ export const getproductorvariant = async (req, res) => {
                 type: "Variant",
                 productId: product._id,
                 productName: product.name,
+                price:product.price,
                 variant: foundVariant
             });
         }
@@ -188,6 +189,7 @@ export const scanProduct = async (req, res) => {
         return res.status(200).json({
             message: "Product scanned",
             product: product.name,
+            price:product.price,
             variant
         });
     } catch (error) {

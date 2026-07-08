@@ -40,7 +40,7 @@ export function AppShell({ children }: { children: ReactNode }) {
   }
 
   return (
-    <div className="min-h-screen bg-background text-foreground flex">
+    <div className="h-screen overflow-hidden bg-background text-foreground flex">
       <aside className="hidden md:flex w-64 shrink-0 flex-col border-r border-border bg-card">
         <div className="px-6 py-5 flex items-center gap-2 border-b border-border">
           <div className="size-8 rounded-lg bg-primary text-primary-foreground flex items-center justify-center">
@@ -84,7 +84,7 @@ export function AppShell({ children }: { children: ReactNode }) {
           </div>
         </div>
       </aside>
-      <main className="flex-1 min-w-0">
+      <main className="flex-1 min-w-0 h-screen overflow-y-auto">
         <header className="md:hidden flex items-center justify-between border-b border-border bg-card px-4 py-3">
           <div className="flex items-center gap-2">
             <div className="size-7 rounded-md bg-primary text-primary-foreground flex items-center justify-center">
