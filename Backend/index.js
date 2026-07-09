@@ -20,7 +20,7 @@ app.use(cors({
     allowedHeaders: ["Content-Type", "Authorization"],
     credentials: true
 }));
-app.options("*", cors());
+app.options("(.*)", cors());
 await Dbconnector();
 
 // Handle preflight requests
