@@ -15,6 +15,18 @@ dns.setServers(["1.1.1.1", "8.8.8.8"]);
 
 const app = express();
 
+// Handle OPTIONS preflight manually before anything else
+app.use((req, res, next) => {
+    res.header("Access-Control-Allow-Origin", req.headers.origin || "*");
+    res.header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS, PATCH");
+    res.header("Access-Control-Allow-Headers", "Content-Type, Authorization");
+    res.header("Access-Control-Allow-Credentials", "true");
+    if (req.method === "OPTIONS") {
+        return res.status(200).end();
+    }
+    next();
+});
+
 app.use(cors({
     origin: [
         "http://localhost:5173",
