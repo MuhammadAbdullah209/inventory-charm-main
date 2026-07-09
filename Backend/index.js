@@ -21,7 +21,7 @@ app.use(cors({
     credentials: true
 }));
 app.options("(.*)", cors());
-await Dbconnector();
+
 
 // Handle preflight requests
 
@@ -53,7 +53,7 @@ app.use("/Api", billroute);
 app.use("/Api/suppliers", SupplierRoutes);
 app.use("/Api/purchases", PurchaseRoutes);
 app.use("/Api/dashboard", DashboardRoutes);
-
+await Dbconnector();
 
 if (process.env.NODE_ENV !== "production") {
     app.listen(PORT, () => console.log(`Server running on ${PORT}`));
