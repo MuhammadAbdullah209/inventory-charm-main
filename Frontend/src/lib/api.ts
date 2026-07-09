@@ -3,11 +3,11 @@ const TOKEN_KEY = "inv_token";
 const USER_KEY = "inv_user";
 
 export function getApiBase(): string {
-  if (typeof window === "undefined") return "https://pos-inventory-system-crjx-6db604yik.vercel.app";
+  if (typeof window === "undefined") return "https://pos-inventory-system-crjx.vercel.app";
   return localStorage.getItem(STORAGE_KEY) || (
     import.meta.env.DEV
       ? "http://localhost:5000"
-      : "https://pos-inventory-system-crjx-6db604yik.vercel.app"
+      : "https://pos-inventory-system-crjx.vercel.app"
   );
 }
 export function setApiBase(url: string) {
