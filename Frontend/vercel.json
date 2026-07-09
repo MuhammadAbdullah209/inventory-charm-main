@@ -1,17 +1,8 @@
 {
-  "framework": null,
+  "outputDirectory": "dist/client",
   "buildCommand": "npm run build",
-  "outputDirectory": "dist",
   "installCommand": "npm install --legacy-peer-deps",
-  "functions": {
-    "dist/server/**/*.js": {
-      "runtime": "nodejs20.x"
-    }
-  },
-  "routes": [
-    {
-      "src": "/(.*)",
-      "dest": "/dist/server/index.mjs"
-    }
+  "rewrites": [
+    { "source": "/(.*)", "destination": "/index.html" }
   ]
 }
