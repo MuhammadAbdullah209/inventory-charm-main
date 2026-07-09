@@ -9,8 +9,12 @@ import billroute from "./Routes/BillingRoute.js";
 import SupplierRoutes from "./Routes/Supplier_Routes.js";
 import PurchaseRoutes from "./Routes/Purchase_Routes.js";
 import DashboardRoutes from "./Routes/Dashboard_Routes.js";
-dns.setServers(["1.1.1.1", "8.8.8.8"])
+
+dns.setDefaultResultOrder("ipv4first");
+dns.setServers(["1.1.1.1", "8.8.8.8"]);
+
 const app = express();
+
 app.use(cors({
     origin: [
         "http://localhost:5173",
@@ -20,25 +24,14 @@ app.use(cors({
     allowedHeaders: ["Content-Type", "Authorization"],
     credentials: true
 }));
-app.options("(.*)", cors());
-
-
-// Handle preflight requests
 
 app.use(express.json());
-
 
 app.get("/", (req, res) => {
     res.send(`
         <html>
-            <body style="
-                background:#111;
-                color:white;
-                font-family:Arial;
-                text-align:center;
-                padding-top:100px;
-            ">
-                <h1 style="color:lime;">API is Running </h1>
+            <body style="background:#111;color:white;font-family:Arial;text-align:center;padding-top:100px;">
+                <h1 style="color:lime;">API is Running</h1>
                 <p>MongoDB URL Exists: ${!!process.env.MONGODB_URL}</p>
                 <p>NODE_ENV: ${process.env.NODE_ENV}</p>
             </body>
@@ -46,17 +39,20 @@ app.get("/", (req, res) => {
     `);
 });
 
-// Routes
 app.use('/Api', productRoutes);
 app.use('/Api', userRoutes);
 app.use("/Api", billroute);
 app.use("/Api/suppliers", SupplierRoutes);
 app.use("/Api/purchases", PurchaseRoutes);
 app.use("/Api/dashboard", DashboardRoutes);
-await Dbconnector();
 
-if (process.env.NODE_ENV !== "production") {
-    app.listen(PORT, () => console.log(`Server running on ${PORT}`));
+async function startServer() {
+    await Dbconnector();
+    if (process.env.NODE_ENV !== "production") {
+        app.listen(PORT, () => console.log(`Server running on ${PORT}`));
+    }
 }
+
+startServer().catch(err => console.error("Startup error:", err));
 
 export default app;
