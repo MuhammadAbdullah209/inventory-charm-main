@@ -10,9 +10,6 @@ import SupplierRoutes from "./Routes/Supplier_Routes.js";
 import PurchaseRoutes from "./Routes/Purchase_Routes.js";
 import DashboardRoutes from "./Routes/Dashboard_Routes.js";
 dns.setServers(["1.1.1.1", "8.8.8.8"])
-
-await Dbconnector();
-
 const app = express();
 app.use(cors({
     origin: [
@@ -23,6 +20,7 @@ app.use(cors({
     allowedHeaders: ["Content-Type", "Authorization"],
     credentials: true
 }));
+await Dbconnector();
 
 // Handle preflight requests
 app.options("*", cors());
