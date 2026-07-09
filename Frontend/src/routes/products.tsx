@@ -36,6 +36,53 @@ function InlineBarcode({ value }: { value: string }) {
   return <svg ref={ref} className="w-full" />;
 }
 
+function downloadAllBarcodes(products: Product[]) {
+  const win = window.open("", "_blank");
+  if (!win) return;
+
+  const items = products.flatMap((p) =>
+    p.variants
+      .filter((v) => v.barcode)
+      .map((v) => ({ productName: p.name, category: p.category, size: v.size, color: v.color, barcode: v.barcode! }))
+  );
+
+  const svgTags = items.map((item) => {
+    const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+    try {
+      JsBarcode(svg, item.barcode, {
+        format: "CODE128", width: 1.5, height: 50, displayValue: false, margin: 4,
+      });
+    } catch { /* skip invalid */ }
+    return `
+      <div class="item">
+        <div class="meta">${item.productName}</div>
+        <div class="variant">${item.size} · ${item.color}</div>
+        ${svg.outerHTML}
+        <div class="code">${item.barcode}</div>
+      </div>`;
+  }).join("");
+
+  win.document.write(`
+    <html><head><title>All Barcodes</title>
+    <style>
+      body { font-family: sans-serif; margin: 16px; }
+      .grid { display: flex; flex-wrap: wrap; gap: 12px; }
+      .item { border: 1px solid #ddd; border-radius: 6px; padding: 10px; width: 160px; page-break-inside: avoid; }
+      .meta { font-size: 11px; font-weight: 600; }
+      .variant { font-size: 10px; color: #555; margin-bottom: 4px; }
+      .code { font-size: 9px; color: #888; font-family: monospace; margin-top: 2px; text-align: center; word-break: break-all; }
+      svg { width: 100%; }
+      @media print { body { margin: 8px; } }
+    </style></head>
+    <body>
+      <h2 style="font-size:14px;margin-bottom:12px;">All Product Barcodes</h2>
+      <div class="grid">${svgTags}</div>
+      <script>setTimeout(() => { window.print(); }, 500);<\/script>
+    </body></html>
+  `);
+  win.document.close();
+}
+
 function PrintBarcodesDialog({ product }: { product: Product }) {
   const [open, setOpen] = useState(false);
   const printRef = useRef<HTMLDivElement>(null);
@@ -175,43 +222,50 @@ function ProductsPage() {
         title="Products"
         description="Manage products and their variants."
         action={
-          <Dialog open={open} onOpenChange={setOpen}>
-            <DialogTrigger asChild>
-              <Button><Plus className="size-4" /> New product</Button>
-            </DialogTrigger>
-            <DialogContent className="max-w-2xl">
-              <DialogHeader><DialogTitle>Create product</DialogTitle></DialogHeader>
-              <form onSubmit={create} className="space-y-4">
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="space-y-2"><Label>Name</Label><Input required value={name} onChange={(e) => setName(e.target.value)} /></div>
-                  <div className="space-y-2"><Label>Category</Label><Input required value={category} onChange={(e) => setCategory(e.target.value)} /></div>
-                  <div className="space-y-2"><Label>Price</Label><Input required type="number" step="0.01" value={price} onChange={(e) => setPrice(e.target.value)} /></div>
-                </div>
-                <div className="space-y-2"><Label>Description</Label><Textarea value={description} onChange={(e) => setDescription(e.target.value)} /></div>
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between">
-                    <Label>Variants</Label>
-                    <Button type="button" variant="ghost" size="sm" onClick={() => setVariants([...variants, { size: "", color: "", stock: 0 }])}>
-                      <Plus className="size-3" /> Add
-                    </Button>
+          <div className="flex items-center gap-2">
+            {products.length > 0 && (
+              <Button variant="outline" onClick={() => downloadAllBarcodes(products)}>
+                <Printer className="size-4 mr-1" /> Download All Barcodes
+              </Button>
+            )}
+            <Dialog open={open} onOpenChange={setOpen}>
+              <DialogTrigger asChild>
+                <Button><Plus className="size-4" /> New product</Button>
+              </DialogTrigger>
+              <DialogContent className="max-w-2xl">
+                <DialogHeader><DialogTitle>Create product</DialogTitle></DialogHeader>
+                <form onSubmit={create} className="space-y-4">
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="space-y-2"><Label>Name</Label><Input required value={name} onChange={(e) => setName(e.target.value)} /></div>
+                    <div className="space-y-2"><Label>Category</Label><Input required value={category} onChange={(e) => setCategory(e.target.value)} /></div>
+                    <div className="space-y-2"><Label>Price</Label><Input required type="number" step="0.01" value={price} onChange={(e) => setPrice(e.target.value)} /></div>
                   </div>
-                  {variants.map((v, i) => (
-                    <div key={i} className="grid grid-cols-12 gap-2">
-                      <Input className="col-span-3" placeholder="Size" value={v.size} onChange={(e) => setVariants(variants.map((x, j) => j === i ? { ...x, size: e.target.value } : x))} />
-                      <Input className="col-span-3" placeholder="Color" value={v.color} onChange={(e) => setVariants(variants.map((x, j) => j === i ? { ...x, color: e.target.value } : x))} />
-                      <Input className="col-span-2" type="number" placeholder="Stock" value={v.stock} onChange={(e) => setVariants(variants.map((x, j) => j === i ? { ...x, stock: Number(e.target.value) } : x))} />
-                      <Input className="col-span-3" placeholder="Barcode (auto)" value={v.barcode ?? ""} onChange={(e) => setVariants(variants.map((x, j) => j === i ? { ...x, barcode: e.target.value } : x))} />
-                      <Button type="button" variant="ghost" size="icon" className="col-span-1" onClick={() => setVariants(variants.filter((_, j) => j !== i))}>
-                        <Trash2 className="size-4" />
+                  <div className="space-y-2"><Label>Description</Label><Textarea value={description} onChange={(e) => setDescription(e.target.value)} /></div>
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <Label>Variants</Label>
+                      <Button type="button" variant="ghost" size="sm" onClick={() => setVariants([...variants, { size: "", color: "", stock: 0 }])}>
+                        <Plus className="size-3" /> Add
                       </Button>
                     </div>
-                  ))}
-                </div>
-                {err && <p className="text-sm text-destructive">{err}</p>}
-                <DialogFooter><Button type="submit">Create</Button></DialogFooter>
-              </form>
-            </DialogContent>
-          </Dialog>
+                    {variants.map((v, i) => (
+                      <div key={i} className="grid grid-cols-12 gap-2">
+                        <Input className="col-span-3" placeholder="Size" value={v.size} onChange={(e) => setVariants(variants.map((x, j) => j === i ? { ...x, size: e.target.value } : x))} />
+                        <Input className="col-span-3" placeholder="Color" value={v.color} onChange={(e) => setVariants(variants.map((x, j) => j === i ? { ...x, color: e.target.value } : x))} />
+                        <Input className="col-span-2" type="number" placeholder="Stock" value={v.stock} onChange={(e) => setVariants(variants.map((x, j) => j === i ? { ...x, stock: Number(e.target.value) } : x))} />
+                        <Input className="col-span-3" placeholder="Barcode (auto)" value={v.barcode ?? ""} onChange={(e) => setVariants(variants.map((x, j) => j === i ? { ...x, barcode: e.target.value } : x))} />
+                        <Button type="button" variant="ghost" size="icon" className="col-span-1" onClick={() => setVariants(variants.filter((_, j) => j !== i))}>
+                          <Trash2 className="size-4" />
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                  {err && <p className="text-sm text-destructive">{err}</p>}
+                  <DialogFooter><Button type="submit">Create</Button></DialogFooter>
+                </form>
+              </DialogContent>
+            </Dialog>
+          </div>
         }
       />
 
@@ -279,7 +333,6 @@ function ProductsPage() {
                   </div>
                 </div>
 
-                {/* Variant cards with inline barcode */}
                 <div className="mt-4 grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2">
                   {p.variants.map((v) => (
                     <div key={v.barcode} className="rounded-md border border-border p-2 text-xs">
@@ -287,7 +340,6 @@ function ProductsPage() {
                         <span className="font-medium">{v.size} · {v.color}</span>
                         <span className={v.stock <= 5 ? "text-destructive" : "text-muted-foreground"}>{v.stock}</span>
                       </div>
-                      {/* Inline barcode image */}
                       {v.barcode && <InlineBarcode value={v.barcode} />}
                       <div className="font-mono text-[9px] text-muted-foreground truncate mt-1">{v.barcode}</div>
                     </div>
