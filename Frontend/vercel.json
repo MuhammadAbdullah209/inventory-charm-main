@@ -1,5 +1,5 @@
 {
-  "outputDirectory": "dist/client",
+  "outputDirectory": ".output/public",
   "buildCommand": "npm run build",
   "installCommand": "npm install --legacy-peer-deps",
   "rewrites": [
