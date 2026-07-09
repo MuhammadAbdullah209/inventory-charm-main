@@ -17,7 +17,7 @@ const app = express();
 app.use(cors({
     origin: [
         "http://localhost:5173",
-        "https://inventory-charm-main.vercel.app/"
+        "https://inventory-charm-main.vercel.app"
     ],
     credentials: true
 }));
