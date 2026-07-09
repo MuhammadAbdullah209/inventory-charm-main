@@ -14,7 +14,13 @@ dns.setServers(["1.1.1.1", "8.8.8.8"])
 await Dbconnector();
 
 const app = express();
-app.use(cors());
+app.use(cors({
+    origin: [
+        "http://localhost:5173",
+        "https://inventory-charm-main.vercel.app/"
+    ],
+    credentials: true
+}));
 app.use(express.json());
 
 
