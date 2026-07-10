@@ -23,10 +23,10 @@ function downloadSingleBill(b: Bill) {
     "Size": it.size ?? "",
     "Color": it.color ?? "",
     "Quantity": it.quantity,
-    "Price (₹)": it.price,
-    "Total (₹)": it.total,
+    "Price (Rs)": it.price,
+    "Total (Rs)": it.total,
   }));
-  rows.push({ "Product": "TOTAL", "Size": "", "Color": "", "Quantity": "", "Price (₹)": "", "Total (₹)": b.totalAmount } as never);
+  rows.push({ "Product": "TOTAL", "Size": "", "Color": "", "Quantity": "", "Price (Rs)": "", "Total (Rs)": b.totalAmount } as never);
 
   const ws = XLSX.utils.json_to_sheet(rows);
   ws["!cols"] = [{ wch: 25 }, { wch: 10 }, { wch: 12 }, { wch: 10 }, { wch: 12 }, { wch: 12 }];
@@ -46,7 +46,7 @@ function downloadAllBills(bills: Bill[]) {
     "Bill ID": b._id,
     "Date": b.createdAt ? new Date(b.createdAt).toLocaleString() : "",
     "Items": b.items.length,
-    "Total (₹)": b.totalAmount,
+    "Total (Rs)": b.totalAmount,
   }));
   const summaryWs = XLSX.utils.json_to_sheet(summary);
   summaryWs["!cols"] = [{ wch: 4 }, { wch: 26 }, { wch: 22 }, { wch: 8 }, { wch: 12 }];
@@ -59,10 +59,10 @@ function downloadAllBills(bills: Bill[]) {
       "Size": it.size ?? "",
       "Color": it.color ?? "",
       "Quantity": it.quantity,
-      "Price (₹)": it.price,
-      "Total (₹)": it.total,
+      "Price (Rs)": it.price,
+      "Total (Rs)": it.total,
     }));
-    rows.push({ "Product": "TOTAL", "Size": "", "Color": "", "Quantity": "", "Price (₹)": "", "Total (₹)": b.totalAmount } as never);
+    rows.push({ "Product": "TOTAL", "Size": "", "Color": "", "Quantity": "", "Price (Rs)": "", "Total (Rs)": b.totalAmount } as never);
     const ws = XLSX.utils.json_to_sheet(rows);
     ws["!cols"] = [{ wch: 25 }, { wch: 10 }, { wch: 12 }, { wch: 10 }, { wch: 12 }, { wch: 12 }];
     XLSX.utils.book_append_sheet(wb, ws, `Bill-${i + 1}`);
@@ -177,13 +177,13 @@ function BillingPage() {
                           {it.color ? ` · ${it.color}` : ""}
                           {" "}× {it.quantity}
                         </span>
-                        <span className="ml-4 shrink-0">₹{it.total}</span>
+                        <span className="ml-4 shrink-0">Rs{it.total}</span>
                       </li>
                     ))}
                   </ul>
                   <div className="flex justify-between font-semibold border-t border-border pt-2 mt-2">
                     <span>Total</span>
-                    <span>₹{b.totalAmount}</span>
+                    <span>Rs{b.totalAmount}</span>
                   </div>
                 </CardContent>
               </Card>
@@ -247,12 +247,12 @@ function BillingPage() {
                   {bill.items.map((it, i) => (
                     <li key={i} className="flex justify-between">
                       <span className="truncate">{it.productName} × {it.quantity}</span>
-                      <span>₹{it.total}</span>
+                      <span>Rs{it.total}</span>
                     </li>
                   ))}
                 </ul>
                 <div className="flex justify-between mt-3 font-semibold border-t border-border pt-2">
-                  <span>Total</span><span>₹{bill.totalAmount}</span>
+                  <span>Total</span><span>Rs{bill.totalAmount}</span>
                 </div>
                 <Button size="sm" variant="outline" className="w-full mt-3" onClick={() => downloadSingleBill(bill)}>
                   <Download className="size-3 mr-1" /> Download Excel

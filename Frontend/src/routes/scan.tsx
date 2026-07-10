@@ -72,7 +72,7 @@ function ScanPage() {
             <div className="flex items-center justify-between mt-1">
               <h3 className="text-xl font-semibold">{res.product ?? res.productName}</h3>
               {res.price !== undefined && (
-                <div className="text-xl font-semibold text-primary">₹{res.price}</div>
+                <div className="text-xl font-semibold text-primary">Rs{res.price}</div>
               )}
             </div>
 

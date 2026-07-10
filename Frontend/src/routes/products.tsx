@@ -328,7 +328,7 @@ function ProductsPage() {
                     <div className="text-xs text-muted-foreground mt-1 font-mono">{p.productCode}</div>
                   </div>
                   <div className="text-right">
-                    <div className="text-lg font-semibold">₹{p.price}</div>
+                    <div className="text-lg font-semibold">Rs{p.price}</div>
                     <div className="text-xs text-muted-foreground">{totalStock} in stock</div>
                   </div>
                 </div>

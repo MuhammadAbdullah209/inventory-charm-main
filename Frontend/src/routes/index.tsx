@@ -25,15 +25,15 @@ function Dashboard() {
 
   useEffect(() => {
     api<DashboardStats>("/Api/dashboard").then(setStats).catch((e) => setErr(e.message));
-    api<LowStock[]>("/Api/low-stock").then(setLow).catch(() => {});
-    api<Product[]>("/Api/").then((p) => setRecent(p.slice(-5).reverse())).catch(() => {});
+    api<LowStock[]>("/Api/low-stock").then(setLow).catch(() => { });
+    api<Product[]>("/Api/").then((p) => setRecent(p.slice(-5).reverse())).catch(() => { });
   }, []);
 
   const cards = [
     { label: "Products", value: stats?.totalProducts ?? "—", icon: Package },
     { label: "Suppliers", value: stats?.totalSuppliers ?? "—", icon: Truck },
     { label: "Bills", value: stats?.totalBills ?? "—", icon: Receipt },
-    { label: "Revenue", value: stats ? `₹${stats.revenue.toLocaleString()}` : "—", icon: TrendingUp },
+    { label: "Revenue", value: stats ? `Rs${stats.revenue.toLocaleString()}` : "—", icon: TrendingUp },
   ];
 
   return (
@@ -93,7 +93,7 @@ function Dashboard() {
                       <div className="font-medium">{p.name}</div>
                       <div className="text-xs text-muted-foreground">{p.category} · {p.variants.length} variants</div>
                     </div>
-                    <span className="font-medium">₹{p.price}</span>
+                    <span className="font-medium">Rs{p.price}</span>
                   </li>
                 ))}
               </ul>
