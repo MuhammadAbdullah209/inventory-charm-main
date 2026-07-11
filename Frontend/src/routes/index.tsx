@@ -1,11 +1,17 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, redirect } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { AppShell, PageHeader } from "@/components/AppShell";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { api, type DashboardStats, type Product } from "@/lib/api";
+import { api, getUser, type DashboardStats, type Product } from "@/lib/api";
 import { Package, Truck, Receipt, TrendingUp, AlertTriangle } from "lucide-react";
 
 export const Route = createFileRoute("/")({
+  beforeLoad: () => {
+    const user = getUser();
+    if (user?.role?.toLowerCase() === "staff") {
+      throw redirect({ to: "/billing" });
+    }
+  },
   head: () => ({
     meta: [
       { title: "Dashboard — Inventory" },

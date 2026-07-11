@@ -28,7 +28,7 @@ export function AppShell({ children }: { children: ReactNode }) {
     if (!getToken()) navigate({ to: "/login" });
   }, [navigate]);
 
-  const role = user?.role ?? "staff"; 
+  const role = user?.role ?? "staff";
   const nav = ALL_NAV.filter((n) => n.roles.includes(role));
 
 
@@ -59,8 +59,8 @@ export function AppShell({ children }: { children: ReactNode }) {
                 key={n.to}
                 to={n.to}
                 className={`flex items-center gap-3 rounded-md px-3 py-2 text-sm transition-colors ${active
-                    ? "bg-primary text-primary-foreground"
-                    : "text-muted-foreground hover:bg-muted hover:text-foreground"
+                  ? "bg-primary text-primary-foreground"
+                  : "text-muted-foreground hover:bg-muted hover:text-foreground"
                   }`}
               >
                 <n.icon className="size-4" />
@@ -70,7 +70,7 @@ export function AppShell({ children }: { children: ReactNode }) {
           })}
         </nav>
         <div className="p-3 border-t border-border space-y-1">
-          <ApiSettings />
+          
           <button
             onClick={logout}
             className="w-full flex items-center gap-3 rounded-md px-3 py-2 text-sm text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
@@ -117,34 +117,7 @@ export function AppShell({ children }: { children: ReactNode }) {
   );
 }
 
-function ApiSettings() {
-  const [open, setOpen] = useState(false);
-  const [url, setUrl] = useState("");
-  useEffect(() => { if (open) setUrl(getApiBase()); }, [open]);
-  return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        <button className="w-full flex items-center gap-3 rounded-md px-3 py-2 text-sm text-muted-foreground hover:bg-muted hover:text-foreground transition-colors">
-          <Settings className="size-4" />
-          API Settings
-        </button>
-      </DialogTrigger>
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle>API Endpoint</DialogTitle>
-        </DialogHeader>
-        <div className="space-y-2">
-          <Label>Backend URL</Label>
-          <Input value={url} onChange={(e) => setUrl(e.target.value)} placeholder="http://localhost:5000" />
-          <p className="text-xs text-muted-foreground">Points to your Express server. Do not include trailing slash.</p>
-        </div>
-        <DialogFooter>
-          <Button onClick={() => { setApiBase(url); setOpen(false); }}>Save</Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
-  );
-}
+
 
 export function PageHeader({ title, description, action }: { title: string; description?: string; action?: ReactNode }) {
   return (

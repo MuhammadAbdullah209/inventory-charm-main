@@ -28,9 +28,11 @@ function LoginPage() {
         "/Api/login",
         { method: "POST", body: JSON.stringify({ email, password }) },
       );
+      const userPayload = data.user ?? { name: data.name, role: data.role, email };
       if (data.token) setToken(data.token);
-      setUser(data.user ?? { name: data.name, role: data.role, email });
-      navigate({ to: "/" });
+      setUser(userPayload);
+      const role = (userPayload as { role?: string }).role?.toLowerCase();
+      navigate({ to: role === "staff" ? "/billing" : "/" });
     } catch (e) {
       setErr((e as Error).message);
     } finally {
@@ -64,7 +66,7 @@ function LoginPage() {
             <Button type="submit" className="w-full" disabled={loading}>
               {loading ? "Signing in…" : "Sign in"}
             </Button>
-            
+
           </form>
         </CardContent>
       </Card>
