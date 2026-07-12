@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { api, type Purchase, type Supplier } from "@/lib/api";
 import { Plus, Download, FileDown, Trash2 } from "lucide-react";
@@ -56,15 +57,18 @@ function PurchasesPage() {
   const [barcode, setBarcode] = useState("");
   const [quantity, setQuantity] = useState("1");
   const [err, setErr] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [submitting, setSubmitting] = useState(false);
 
   function load() {
-    api<Purchase[]>("/Api/purchases").then(setList).catch(() => {});
+    setLoading(true);
+    api<Purchase[]>("/Api/purchases").then(setList).catch(() => {}).finally(() => setLoading(false));
     api<Supplier[]>("/Api/suppliers").then(setSuppliers).catch(() => {});
   }
   useEffect(load, []);
 
   async function create(e: React.FormEvent) {
-    e.preventDefault(); setErr(null);
+    e.preventDefault(); setErr(null); setSubmitting(true);
     try {
       await api("/Api/purchases", {
         method: "POST",
@@ -72,6 +76,7 @@ function PurchasesPage() {
       });
       setOpen(false); setBarcode(""); setQuantity("1"); load();
     } catch (e) { setErr((e as Error).message); }
+    finally { setSubmitting(false); }
   }
 
   async function remove(id: string) {
@@ -111,7 +116,7 @@ function PurchasesPage() {
                   <div className="space-y-2"><Label>Variant barcode</Label><Input required value={barcode} onChange={(e) => setBarcode(e.target.value)} /></div>
                   <div className="space-y-2"><Label>Quantity</Label><Input required type="number" min="1" value={quantity} onChange={(e) => setQuantity(e.target.value)} /></div>
                   {err && <p className="text-sm text-destructive">{err}</p>}
-                  <DialogFooter><Button type="submit">Save</Button></DialogFooter>
+                  <DialogFooter><Button type="submit" disabled={submitting}>{submitting ? <LoadingSpinner label="Saving..." className="justify-center" /> : "Save"}</Button></DialogFooter>
                 </form>
               </DialogContent>
             </Dialog>
@@ -120,6 +125,11 @@ function PurchasesPage() {
       />
       <Card>
         <CardContent className="p-0">
+          {loading ? (
+            <div className="flex justify-center py-8">
+              <LoadingSpinner label="Loading purchases..." />
+            </div>
+          ) : (
           <table className="w-full text-sm">
             <thead className="text-left text-xs uppercase tracking-wider text-muted-foreground border-b border-border">
               <tr>
@@ -156,6 +166,7 @@ function PurchasesPage() {
               )}
             </tbody>
           </table>
+          )}
         </CardContent>
       </Card>
     </AppShell>

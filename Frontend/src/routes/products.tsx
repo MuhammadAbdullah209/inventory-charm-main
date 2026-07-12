@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { Textarea } from "@/components/ui/textarea";
 import { api, type Product } from "@/lib/api";
 import { Plus, Trash2, Search, Pencil, Printer } from "lucide-react";
@@ -149,6 +150,8 @@ function ProductsPage() {
   const [editOpen, setEditOpen] = useState(false);
   const [err, setErr] = useState<string | null>(null);
   const [editErr, setEditErr] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [submitting, setSubmitting] = useState(false);
 
   const [name, setName] = useState("");
   const [category, setCategory] = useState("");
@@ -164,12 +167,14 @@ function ProductsPage() {
   const [editVariants, setEditVariants] = useState<VariantInput[]>([]);
 
   function load() {
-    api<Product[]>("/Api/").then(setProducts).catch((e) => setErr(e.message));
+    setLoading(true);
+    setErr(null);
+    api<Product[]>("/Api/").then(setProducts).catch((e) => setErr(e.message)).finally(() => setLoading(false));
   }
   useEffect(load, []);
 
   async function create(e: React.FormEvent) {
-    e.preventDefault(); setErr(null);
+    e.preventDefault(); setErr(null); setSubmitting(true);
     try {
       await api<Product>("/Api/", {
         method: "POST",
@@ -180,6 +185,7 @@ function ProductsPage() {
       setVariants([{ size: "", color: "", stock: 0 }]);
       load();
     } catch (e) { setErr((e as Error).message); }
+    finally { setSubmitting(false); }
   }
 
   function openEdit(p: Product) {
@@ -196,7 +202,7 @@ function ProductsPage() {
   async function update(e: React.FormEvent) {
     e.preventDefault();
     if (!editId) return;
-    setEditErr(null);
+    setEditErr(null); setSubmitting(true);
     try {
       await api(`/Api/${editId}`, {
         method: "PUT",
@@ -204,6 +210,7 @@ function ProductsPage() {
       });
       setEditOpen(false); setEditId(null); load();
     } catch (e) { setEditErr((e as Error).message); }
+    finally { setSubmitting(false); }
   }
 
   async function remove(id: string) {
@@ -261,7 +268,7 @@ function ProductsPage() {
                     ))}
                   </div>
                   {err && <p className="text-sm text-destructive">{err}</p>}
-                  <DialogFooter><Button type="submit">Create</Button></DialogFooter>
+                  <DialogFooter><Button type="submit" disabled={submitting}>{submitting ? <LoadingSpinner label="Creating..." className="justify-center" /> : "Create"}</Button></DialogFooter>
                 </form>
               </DialogContent>
             </Dialog>
@@ -301,7 +308,7 @@ function ProductsPage() {
             {editErr && <p className="text-sm text-destructive">{editErr}</p>}
             <DialogFooter>
               <Button type="button" variant="outline" onClick={() => setEditOpen(false)}>Cancel</Button>
-              <Button type="submit">Save changes</Button>
+              <Button type="submit" disabled={submitting}>{submitting ? <LoadingSpinner label="Saving..." className="justify-center" /> : "Save changes"}</Button>
             </DialogFooter>
           </form>
         </DialogContent>
@@ -312,55 +319,61 @@ function ProductsPage() {
         <Input placeholder="Search products…" className="pl-9" value={q} onChange={(e) => setQ(e.target.value)} />
       </div>
       {err && !open && <div className="mb-4 text-sm text-destructive">{err}</div>}
-      <div className="grid gap-3">
-        {filtered.map((p) => {
-          const totalStock = p.variants.reduce((s, v) => s + (v.stock || 0), 0);
-          return (
-            <Card key={p._id}>
-              <CardContent className="p-5">
-                <div className="flex flex-wrap items-start justify-between gap-3">
-                  <div className="min-w-0">
-                    <div className="flex items-center gap-2">
-                      <h3 className="font-medium tracking-tight">{p.name}</h3>
-                      <span className="text-xs px-2 py-0.5 rounded-full bg-muted text-muted-foreground">{p.category}</span>
-                    </div>
-                    {p.description && <p className="text-sm text-muted-foreground mt-1">{p.description}</p>}
-                    <div className="text-xs text-muted-foreground mt-1 font-mono">{p.productCode}</div>
-                  </div>
-                  <div className="text-right">
-                    <div className="text-lg font-semibold">Rs{p.price}</div>
-                    <div className="text-xs text-muted-foreground">{totalStock} in stock</div>
-                  </div>
-                </div>
-
-                <div className="mt-4 grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2">
-                  {p.variants.map((v) => (
-                    <div key={v.barcode} className="rounded-md border border-border p-2 text-xs">
-                      <div className="flex justify-between mb-1">
-                        <span className="font-medium">{v.size} · {v.color}</span>
-                        <span className={v.stock <= 5 ? "text-destructive" : "text-muted-foreground"}>{v.stock}</span>
+      {loading ? (
+        <div className="flex justify-center py-8">
+          <LoadingSpinner label="Loading products..." />
+        </div>
+      ) : (
+        <div className="grid gap-3">
+          {filtered.map((p) => {
+            const totalStock = p.variants.reduce((s, v) => s + (v.stock || 0), 0);
+            return (
+              <Card key={p._id}>
+                <CardContent className="p-5">
+                  <div className="flex flex-wrap items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-2">
+                        <h3 className="font-medium tracking-tight">{p.name}</h3>
+                        <span className="text-xs px-2 py-0.5 rounded-full bg-muted text-muted-foreground">{p.category}</span>
                       </div>
-                      {v.barcode && <InlineBarcode value={v.barcode} />}
-                      <div className="font-mono text-[9px] text-muted-foreground truncate mt-1">{v.barcode}</div>
+                      {p.description && <p className="text-sm text-muted-foreground mt-1">{p.description}</p>}
+                      <div className="text-xs text-muted-foreground mt-1 font-mono">{p.productCode}</div>
                     </div>
-                  ))}
-                </div>
+                    <div className="text-right">
+                      <div className="text-lg font-semibold">Rs{p.price}</div>
+                      <div className="text-xs text-muted-foreground">{totalStock} in stock</div>
+                    </div>
+                  </div>
 
-                <div className="mt-3 flex justify-end gap-2">
-                  <PrintBarcodesDialog product={p} />
-                  <Button variant="ghost" size="sm" onClick={() => openEdit(p)}>
-                    <Pencil className="size-3 mr-1" /> Edit
-                  </Button>
-                  <Button variant="ghost" size="sm" onClick={() => remove(p._id)}>
-                    <Trash2 className="size-3 mr-1" /> Delete
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          );
-        })}
-        {filtered.length === 0 && <p className="text-sm text-muted-foreground">No products.</p>}
-      </div>
+                  <div className="mt-4 grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2">
+                    {p.variants.map((v) => (
+                      <div key={v.barcode} className="rounded-md border border-border p-2 text-xs">
+                        <div className="flex justify-between mb-1">
+                          <span className="font-medium">{v.size} · {v.color}</span>
+                          <span className={v.stock <= 5 ? "text-destructive" : "text-muted-foreground"}>{v.stock}</span>
+                        </div>
+                        {v.barcode && <InlineBarcode value={v.barcode} />}
+                        <div className="font-mono text-[9px] text-muted-foreground truncate mt-1">{v.barcode}</div>
+                      </div>
+                    ))}
+                  </div>
+
+                  <div className="mt-3 flex justify-end gap-2">
+                    <PrintBarcodesDialog product={p} />
+                    <Button variant="ghost" size="sm" onClick={() => openEdit(p)}>
+                      <Pencil className="size-3 mr-1" /> Edit
+                    </Button>
+                    <Button variant="ghost" size="sm" onClick={() => remove(p._id)}>
+                      <Trash2 className="size-3 mr-1" /> Delete
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            );
+          })}
+          {filtered.length === 0 && <p className="text-sm text-muted-foreground">No products.</p>}
+        </div>
+      )}
     </AppShell>
   );
 }

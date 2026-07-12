@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { api, type Bill } from "@/lib/api";
 import { Plus, Trash2, Receipt, History, Download, FileDown, X, FileText } from "lucide-react";
 import * as XLSX from "xlsx";
@@ -283,7 +284,7 @@ function BillingPage() {
               )}
             </div>
           </DialogHeader>
-          {historyLoading && <p className="text-sm text-muted-foreground">Loading...</p>}
+          {historyLoading && <div className="flex justify-center py-4"><LoadingSpinner label="Loading bill history..." /></div>}
           {historyErr && <p className="text-sm text-destructive">{historyErr}</p>}
           {!historyLoading && !historyErr && bills.length === 0 && (
             <p className="text-sm text-muted-foreground">No bills found.</p>
@@ -412,7 +413,7 @@ function BillingPage() {
               {tab.items.filter((i) => i.barcode).length} item(s) ready
             </p>
             <Button className="w-full mt-4" disabled={tab.loading} onClick={submit}>
-              {tab.loading ? "Processing…" : "Create bill"}
+              {tab.loading ? <LoadingSpinner label="Processing..." className="justify-center" /> : "Create bill"}
             </Button>
             {tab.bill && (
               <div className="mt-5 border-t border-border pt-4">

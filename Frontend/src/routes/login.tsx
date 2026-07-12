@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent } from "@/components/ui/card";
+import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { Boxes } from "lucide-react";
 
 export const Route = createFileRoute("/login")({
@@ -64,7 +65,7 @@ function LoginPage() {
             </div>
             {err && <p className="text-sm text-destructive">{err}</p>}
             <Button type="submit" className="w-full" disabled={loading}>
-              {loading ? "Signing in…" : "Sign in"}
+              {loading ? <LoadingSpinner label="Signing in…" className="justify-center" /> : "Sign in"}
             </Button>
 
           </form>
