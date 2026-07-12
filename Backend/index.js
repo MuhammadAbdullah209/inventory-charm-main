@@ -3,6 +3,7 @@ import { PORT } from "./config.js";
 import Dbconnector from "./db.js";
 import cors from "cors";
 import dns from "dns";
+import mongoose from "mongoose";
 import productRoutes from "./Routes/productRoutes.js";
 import userRoutes from "./Routes/userRoutes.js";
 import billroute from "./Routes/BillingRoute.js";
@@ -38,6 +39,19 @@ app.use(cors({
 }));
 
 app.use(express.json());
+
+// Wait for DB before any request
+app.use(async (req, res, next) => {
+    if (mongoose.connection.readyState === 1) {
+        return next();
+    }
+    try {
+        await Dbconnector();
+        next();
+    } catch (err) {
+        res.status(503).json({ message: "Database unavailable, please retry" });
+    }
+});
 
 app.get("/", (req, res) => {
     res.send(`
