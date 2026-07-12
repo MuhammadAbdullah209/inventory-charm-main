@@ -62,8 +62,8 @@ function PurchasesPage() {
 
   function load() {
     setLoading(true);
-    api<Purchase[]>("/Api/purchases").then(setList).catch(() => {}).finally(() => setLoading(false));
-    api<Supplier[]>("/Api/suppliers").then(setSuppliers).catch(() => {});
+    api<Purchase[]>("/Api/purchases").then(setList).catch(() => { }).finally(() => setLoading(false));
+    api<Supplier[]>("/Api/suppliers").then(setSuppliers).catch(() => { });
   }
   useEffect(load, []);
 
@@ -130,42 +130,42 @@ function PurchasesPage() {
               <LoadingSpinner label="Loading purchases..." />
             </div>
           ) : (
-          <table className="w-full text-sm">
-            <thead className="text-left text-xs uppercase tracking-wider text-muted-foreground border-b border-border">
-              <tr>
-                <th className="p-4">Date</th>
-                <th className="p-4">Supplier</th>
-                <th className="p-4">Product</th>
-                <th className="p-4">Barcode</th>
-                <th className="p-4 text-right">Qty</th>
-                <th className="p-4 text-right">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {list.map((p) => (
-                <tr key={p._id} className="border-b border-border last:border-0">
-                  <td className="p-4 text-muted-foreground">{p.createdAt ? new Date(p.createdAt).toLocaleDateString() : "—"}</td>
-                  <td className="p-4">{typeof p.supplier === "object" ? p.supplier?.name : "—"}</td>
-                  <td className="p-4">{typeof p.productId === "object" ? p.productId?.name : "—"}</td>
-                  <td className="p-4 font-mono text-xs">{p.barcode}</td>
-                  <td className="p-4 text-right font-medium">{p.quantity}</td>
-                  <td className="p-4 text-right">
-                    <div className="flex items-center justify-end gap-1">
-                      <Button variant="ghost" size="sm" onClick={() => downloadSinglePurchase(p)}>
-                        <Download className="size-3 mr-1" /> Excel
-                      </Button>
-                      <Button variant="ghost" size="sm" onClick={() => remove(p._id)}>
-                        <Trash2 className="size-3 mr-1 text-destructive" /> Delete
-                      </Button>
-                    </div>
-                  </td>
+            <table className="w-full text-sm">
+              <thead className="text-left text-xs uppercase tracking-wider text-muted-foreground border-b border-border">
+                <tr>
+                  <th className="p-4">Date</th>
+                  <th className="p-4">Supplier</th>
+                  <th className="p-4">Product</th>
+                  <th className="p-4">Barcode</th>
+                  <th className="p-4 text-right">Qty</th>
+                  <th className="p-4 text-right">Actions</th>
                 </tr>
-              ))}
-              {list.length === 0 && (
-                <tr><td colSpan={6} className="p-6 text-center text-muted-foreground">No purchases yet.</td></tr>
-              )}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {list.map((p) => (
+                  <tr key={p._id} className="border-b border-border last:border-0">
+                    <td className="p-4 text-muted-foreground">{p.createdAt ? new Date(p.createdAt).toLocaleDateString() : "—"}</td>
+                    <td className="p-4">{typeof p.supplier === "object" ? p.supplier?.name : "—"}</td>
+                    <td className="p-4">{typeof p.productId === "object" ? p.productId?.name : "—"}</td>
+                    <td className="p-4 font-mono text-xs">{p.barcode}</td>
+                    <td className="p-4 text-right font-medium">{p.quantity}</td>
+                    <td className="p-4 text-right">
+                      <div className="flex items-center justify-end gap-1">
+                        <Button variant="ghost" size="sm" onClick={() => downloadSinglePurchase(p)}>
+                          <Download className="size-3 mr-1" /> Excel
+                        </Button>
+                        <Button variant="ghost" size="sm" onClick={() => remove(p._id)}>
+                          <Trash2 className="size-3 mr-1 text-destructive" /> Delete
+                        </Button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+                {list.length === 0 && (
+                  <tr><td colSpan={6} className="p-6 text-center text-muted-foreground">No purchases yet.</td></tr>
+                )}
+              </tbody>
+            </table>
           )}
         </CardContent>
       </Card>
