@@ -5,7 +5,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { api, type Bill } from "@/lib/api";
 import { Plus, Trash2, Receipt, History, Download, FileDown, X, FileText } from "lucide-react";
 import * as XLSX from "xlsx";
@@ -24,16 +23,39 @@ interface BillTab {
   bill: Bill | null;
   err: string | null;
   loading: boolean;
+  amountGiven: string;
 }
 
 function createTab(id: number): BillTab {
-  return { id, label: `Customer ${id}`, items: [{ barcode: "", quantity: 1 }], bill: null, err: null, loading: false };
+  return { id, label: `Customer ${id}`, items: [{ barcode: "", quantity: 1 }], bill: null, err: null, loading: false, amountGiven: "" };
 }
 
-// ─── PDF Download ────────────────────────────────────────────────────────────
-function downloadBillPDF(b: Bill) {
+function getAmountColor(given: string, total: number): string {
+  if (!given || given === "" || total === 0) return "";
+  const val = Number(given);
+  if (isNaN(val) || val === 0) return "";
+  const diff = total - val;
+  if (val < total && diff > total * 0.1) return "border-red-500 bg-red-50 text-red-700 focus:ring-red-300";
+  if (val < total) return "border-yellow-500 bg-yellow-50 text-yellow-700 focus:ring-yellow-300";
+  return "border-green-500 bg-green-50 text-green-700 focus:ring-green-300";
+}
+
+function getAmountBadge(given: string, total: number) {
+  if (!given || given === "" || total === 0) return null;
+  const val = Number(given);
+  if (isNaN(val) || val === 0) return null;
+  if (val < total) {
+    return <span className="text-xs text-red-600 font-medium">Rs {total - val} short</span>;
+  }
+  return <span className="text-xs text-green-600 font-medium">Change: Rs {val - total}</span>;
+}
+
+// ─── PDF Download ─────────────────────────────────────────────────────────────
+function downloadBillPDF(b: Bill, amountGiven?: string) {
   const date = b.createdAt ? new Date(b.createdAt).toLocaleString() : new Date().toLocaleString();
   const billNo = b._id.slice(-8).toUpperCase();
+  const given = amountGiven ? Number(amountGiven) : null;
+  const change = given !== null ? given - b.totalAmount : null;
 
   const rows = b.items.map((it, i) => `
     <tr style="background:${i % 2 === 0 ? "#f9fafb" : "#ffffff"}">
@@ -46,93 +68,62 @@ function downloadBillPDF(b: Bill) {
     </tr>
   `).join("");
 
-  const html = `
-    <!DOCTYPE html>
-    <html>
-    <head>
-      <meta charset="utf-8"/>
-      <title>Bill #${billNo}</title>
-      <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { font-family: 'Segoe UI', Arial, sans-serif; background: #fff; color: #111; padding: 40px; }
-        @media print { body { padding: 20px; } .no-print { display: none; } }
-      </style>
-    </head>
-    <body>
+  const paymentRows = given !== null ? `
+    <div style="display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid #e5e7eb;font-size:14px;">
+      <span style="color:#6b7280;">Amount Given</span>
+      <span style="font-weight:600;">Rs ${given}</span>
+    </div>
+    <div style="display:flex;justify-content:space-between;padding:10px 0;font-size:14px;">
+      <span style="color:#6b7280;">Change</span>
+      <span style="font-weight:600;color:${change! >= 0 ? "#16a34a" : "#dc2626"};">Rs ${change}</span>
+    </div>
+  ` : "";
 
-      <!-- Header -->
+  const html = `
+    <!DOCTYPE html><html><head><meta charset="utf-8"/>
+    <title>Bill #${billNo}</title>
+    <style>* { margin:0;padding:0;box-sizing:border-box; } body { font-family:'Segoe UI',Arial,sans-serif;background:#fff;color:#111;padding:40px; } @media print { body { padding:20px; } .no-print { display:none; } }</style>
+    </head><body>
       <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:40px;padding-bottom:24px;border-bottom:2px solid #111;">
-        <div>
-          <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px;">
-            <div style="width:36px;height:36px;background:#111;border-radius:8px;display:flex;align-items:center;justify-content:center;">
-              <span style="color:white;font-size:18px;font-weight:bold;">I</span>
-            </div>
-            <div>
-              <div style="font-size:20px;font-weight:700;letter-spacing:-0.5px;">Inventory</div>
-              <div style="font-size:11px;color:#6b7280;">Management Suite</div>
-            </div>
-          </div>
+        <div style="display:flex;align-items:center;gap:10px;">
+          <div style="width:36px;height:36px;background:#111;border-radius:8px;display:flex;align-items:center;justify-content:center;"><span style="color:white;font-size:18px;font-weight:bold;">I</span></div>
+          <div><div style="font-size:20px;font-weight:700;">Inventory</div><div style="font-size:11px;color:#6b7280;">Management Suite</div></div>
         </div>
         <div style="text-align:right;">
-          <div style="font-size:28px;font-weight:800;letter-spacing:-1px;color:#111;">RECEIPT</div>
+          <div style="font-size:28px;font-weight:800;color:#111;">RECEIPT</div>
           <div style="font-size:13px;color:#6b7280;margin-top:4px;">Bill No: <span style="color:#111;font-weight:600;">#${billNo}</span></div>
           <div style="font-size:13px;color:#6b7280;margin-top:2px;">Date: <span style="color:#111;">${date}</span></div>
         </div>
       </div>
-
-      <!-- Items Table -->
       <table style="width:100%;border-collapse:collapse;margin-bottom:24px;">
-        <thead>
-          <tr style="background:#111;color:#fff;">
-            <th style="padding:12px 14px;text-align:left;font-size:12px;font-weight:600;letter-spacing:0.5px;">PRODUCT</th>
-            <th style="padding:12px 14px;text-align:center;font-size:12px;font-weight:600;letter-spacing:0.5px;">SIZE</th>
-            <th style="padding:12px 14px;text-align:center;font-size:12px;font-weight:600;letter-spacing:0.5px;">COLOR</th>
-            <th style="padding:12px 14px;text-align:center;font-size:12px;font-weight:600;letter-spacing:0.5px;">QTY</th>
-            <th style="padding:12px 14px;text-align:right;font-size:12px;font-weight:600;letter-spacing:0.5px;">PRICE</th>
-            <th style="padding:12px 14px;text-align:right;font-size:12px;font-weight:600;letter-spacing:0.5px;">TOTAL</th>
-          </tr>
-        </thead>
+        <thead><tr style="background:#111;color:#fff;">
+          <th style="padding:12px 14px;text-align:left;font-size:12px;letter-spacing:0.5px;">PRODUCT</th>
+          <th style="padding:12px 14px;text-align:center;font-size:12px;letter-spacing:0.5px;">SIZE</th>
+          <th style="padding:12px 14px;text-align:center;font-size:12px;letter-spacing:0.5px;">COLOR</th>
+          <th style="padding:12px 14px;text-align:center;font-size:12px;letter-spacing:0.5px;">QTY</th>
+          <th style="padding:12px 14px;text-align:right;font-size:12px;letter-spacing:0.5px;">PRICE</th>
+          <th style="padding:12px 14px;text-align:right;font-size:12px;letter-spacing:0.5px;">TOTAL</th>
+        </tr></thead>
         <tbody>${rows}</tbody>
       </table>
-
-      <!-- Totals -->
       <div style="display:flex;justify-content:flex-end;margin-bottom:40px;">
         <div style="min-width:260px;">
-          <div style="display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid #e5e7eb;font-size:14px;">
-            <span style="color:#6b7280;">Subtotal</span>
-            <span>Rs ${b.totalAmount}</span>
-          </div>
-          <div style="display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid #e5e7eb;font-size:14px;">
-            <span style="color:#6b7280;">Tax</span>
-            <span>Rs 0</span>
-          </div>
-          <div style="display:flex;justify-content:space-between;padding:14px 0;font-size:18px;font-weight:800;">
-            <span>TOTAL</span>
-            <span>Rs ${b.totalAmount}</span>
-          </div>
+          <div style="display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid #e5e7eb;font-size:14px;"><span style="color:#6b7280;">Subtotal</span><span>Rs ${b.totalAmount}</span></div>
+          <div style="display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid #e5e7eb;font-size:14px;"><span style="color:#6b7280;">Tax</span><span>Rs 0</span></div>
+          <div style="display:flex;justify-content:space-between;padding:14px 0;font-size:18px;font-weight:800;border-bottom:1px solid #e5e7eb;"><span>TOTAL</span><span>Rs ${b.totalAmount}</span></div>
+          ${paymentRows}
         </div>
       </div>
-
-      <!-- Footer -->
       <div style="border-top:1px solid #e5e7eb;padding-top:20px;text-align:center;">
         <p style="font-size:14px;font-weight:600;margin-bottom:4px;">Thank you for your purchase!</p>
         <p style="font-size:12px;color:#6b7280;">This is a computer-generated receipt and does not require a signature.</p>
       </div>
-
-      <!-- Print Button -->
       <div class="no-print" style="margin-top:30px;text-align:center;">
-        <button onclick="window.print()" style="background:#111;color:white;border:none;padding:12px 32px;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer;margin-right:8px;">
-          🖨 Print
-        </button>
-        <button onclick="window.close()" style="background:#f3f4f6;color:#111;border:none;padding:12px 32px;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer;">
-          Close
-        </button>
+        <button onclick="window.print()" style="background:#111;color:white;border:none;padding:12px 32px;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer;margin-right:8px;">🖨 Print</button>
+        <button onclick="window.close()" style="background:#f3f4f6;color:#111;border:none;padding:12px 32px;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer;">Close</button>
       </div>
-
-    </body>
-    </html>
+    </body></html>
   `;
-
   const win = window.open("", "_blank");
   if (!win) return;
   win.document.write(html);
@@ -208,18 +199,22 @@ function BillingPage() {
 
   const tab = tabs.find((t) => t.id === activeTab)!;
 
+  // Live subtotal from scanned previews
+  const subtotal = tab.items.filter(i => i.barcode).reduce((sum, it) => sum + (it.preview?.price ?? 0) * it.quantity, 0);
+  const hasScannedItems = tab.items.some((i) => i.barcode && i.preview);
+
   async function preview(i: number, code: string) {
     updateTab(activeTab, {
       items: tab.items.map((r, j) => j === i ? { ...r, barcode: code, preview: undefined } : r)
     });
     if (!code) return;
     try {
-      const data = await api<{ product: string; variant: { size: string; color: string; stock: number } }>(
+      const data = await api<{ product: string; price: number; variant: { size: string; color: string; stock: number } }>(
         "/Api/scan", { method: "POST", body: JSON.stringify({ barcode: code }) }
       );
       updateTab(activeTab, {
         items: tab.items.map((r, j) => j === i
-          ? { ...r, barcode: code, preview: { name: data.product, price: 0, size: data.variant.size, color: data.variant.color } }
+          ? { ...r, barcode: code, preview: { name: data.product, price: data.price ?? 0, size: data.variant.size, color: data.variant.color } }
           : r)
       });
     } catch { /* ignore */ }
@@ -239,6 +234,7 @@ function BillingPage() {
         items: [{ barcode: "", quantity: 1 }],
         loading: false,
         label: `✓ Customer ${activeTab}`,
+        // keep amountGiven so PDF still has it
       });
     } catch (e) {
       updateTab(activeTab, { err: (e as Error).message, loading: false });
@@ -284,7 +280,7 @@ function BillingPage() {
               )}
             </div>
           </DialogHeader>
-          {historyLoading && <div className="flex justify-center py-4"><LoadingSpinner label="Loading bill history..." /></div>}
+          {historyLoading && <p className="text-sm text-muted-foreground">Loading...</p>}
           {historyErr && <p className="text-sm text-destructive">{historyErr}</p>}
           {!historyLoading && !historyErr && bills.length === 0 && (
             <p className="text-sm text-muted-foreground">No bills found.</p>
@@ -338,10 +334,11 @@ function BillingPage() {
         {tabs.map((t) => (
           <div
             key={t.id}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm cursor-pointer border transition-colors shrink-0 ${activeTab === t.id
-              ? "bg-primary text-primary-foreground border-primary"
-              : "bg-muted text-muted-foreground border-border hover:bg-muted/80"
-              }`}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm cursor-pointer border transition-colors shrink-0 ${
+              activeTab === t.id
+                ? "bg-primary text-primary-foreground border-primary"
+                : "bg-muted text-muted-foreground border-border hover:bg-muted/80"
+            }`}
             onClick={() => setActiveTab(t.id)}
           >
             {t.label}
@@ -374,6 +371,7 @@ function BillingPage() {
                   {row.preview && (
                     <div className="text-xs text-muted-foreground mt-1">
                       {row.preview.name} · {row.preview.size} · {row.preview.color}
+                      <span className="ml-2 font-medium text-foreground">Rs {row.preview.price} × {row.quantity} = Rs {row.preview.price * row.quantity}</span>
                     </div>
                   )}
                 </div>
@@ -409,16 +407,66 @@ function BillingPage() {
               <Receipt className="size-4" />
               <h3 className="font-medium">{tab.label}</h3>
             </div>
+
             <p className="text-sm text-muted-foreground">
               {tab.items.filter((i) => i.barcode).length} item(s) ready
             </p>
+
+            {/* Live subtotal — shows as soon as items are scanned */}
+            {hasScannedItems && !tab.bill && (
+              <div className="mt-3 space-y-1 text-sm border-t border-border pt-3">
+                {tab.items.filter(i => i.barcode && i.preview).map((it, i) => (
+                  <div key={i} className="flex justify-between text-muted-foreground">
+                    <span className="truncate">{it.preview!.name} × {it.quantity}</span>
+                    <span>Rs {it.preview!.price * it.quantity}</span>
+                  </div>
+                ))}
+                <div className="flex justify-between text-muted-foreground pt-1 border-t border-border">
+                  <span>Subtotal</span><span>Rs {subtotal}</span>
+                </div>
+                <div className="flex justify-between text-muted-foreground">
+                  <span>Tax</span><span>Rs 0</span>
+                </div>
+                <div className="flex justify-between font-semibold text-base pt-1 border-t border-border">
+                  <span>Total</span><span>Rs {subtotal}</span>
+                </div>
+              </div>
+            )}
+
+            {/* Amount given input — shows when items scanned and bill not yet created */}
+            {hasScannedItems && !tab.bill && (
+              <div className="mt-4 space-y-1">
+                <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                  Amount Given by Customer
+                </label>
+                <Input
+                  type="number"
+                  min="0"
+                  placeholder="Enter amount..."
+                  value={tab.amountGiven}
+                  onChange={(e) => updateTab(activeTab, { amountGiven: e.target.value })}
+                  className={`transition-all duration-200 ${getAmountColor(tab.amountGiven, subtotal)}`}
+                />
+                {tab.amountGiven && (
+                  <div className="flex items-center min-h-[20px] text-xs">
+                    {getAmountBadge(tab.amountGiven, subtotal)}
+                    {Number(tab.amountGiven) >= subtotal && subtotal > 0 && (
+                      <span className="text-xs text-green-600 font-medium ml-1">✓ Sufficient</span>
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
+
             <Button className="w-full mt-4" disabled={tab.loading} onClick={submit}>
-              {tab.loading ? <LoadingSpinner label="Processing..." className="justify-center" /> : "Create bill"}
+              {tab.loading ? "Processing…" : "Create bill"}
             </Button>
+
+            {/* After bill is created */}
             {tab.bill && (
               <div className="mt-5 border-t border-border pt-4">
-                <div className="text-xs uppercase tracking-wider text-muted-foreground">Last bill</div>
-                <ul className="mt-2 space-y-1 text-sm">
+                <div className="text-xs uppercase tracking-wider text-muted-foreground mb-2">Bill Created</div>
+                <ul className="space-y-1 text-sm">
                   {tab.bill.items.map((it, i) => (
                     <li key={i} className="flex justify-between">
                       <span className="truncate">{it.productName} × {it.quantity}</span>
@@ -426,10 +474,23 @@ function BillingPage() {
                     </li>
                   ))}
                 </ul>
-                <div className="flex justify-between mt-3 font-semibold border-t border-border pt-2">
+                <div className="flex justify-between mt-2 font-semibold border-t border-border pt-2">
                   <span>Total</span><span>Rs {tab.bill.totalAmount}</span>
                 </div>
-                <Button size="sm" variant="outline" className="w-full mt-3" onClick={() => downloadBillPDF(tab.bill!)}>
+                {tab.amountGiven && (
+                  <div className="mt-2 space-y-1 text-sm">
+                    <div className="flex justify-between text-muted-foreground">
+                      <span>Amount Given</span><span>Rs {tab.amountGiven}</span>
+                    </div>
+                    <div className="flex justify-between font-medium">
+                      <span>Change</span>
+                      <span className={Number(tab.amountGiven) >= tab.bill.totalAmount ? "text-green-600" : "text-red-600"}>
+                        Rs {Number(tab.amountGiven) - tab.bill.totalAmount}
+                      </span>
+                    </div>
+                  </div>
+                )}
+                <Button size="sm" variant="outline" className="w-full mt-3" onClick={() => downloadBillPDF(tab.bill!, tab.amountGiven)}>
                   <FileText className="size-3 mr-1" /> Download PDF
                 </Button>
                 <Button size="sm" variant="outline" className="w-full mt-2" onClick={() => downloadSingleBill(tab.bill!)}>
@@ -437,15 +498,12 @@ function BillingPage() {
                 </Button>
                 <Button size="sm" variant="ghost" className="w-full mt-2" onClick={() => {
                   if (tabs.length === 1) {
-
                     updateTab(activeTab, {
-                      bill: null,
-                      err: null,
+                      bill: null, err: null, amountGiven: "",
                       items: [{ barcode: "", quantity: 1 }],
                       label: `Customer ${nextId - 1}`,
                     });
                   } else {
-
                     closeTab(activeTab);
                   }
                 }}>
